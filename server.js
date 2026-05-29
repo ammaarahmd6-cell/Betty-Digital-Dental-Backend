@@ -17,12 +17,23 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 const isVercel = Boolean(process.env.VERCEL);
+const defaultClientOrigins = [
+  'http://localhost:5173',
+  'https://bettydigitaldental.vercel.app'
+];
+const allowedOrigins = Array.from(new Set([
+  ...defaultClientOrigins,
+  ...(process.env.CLIENT_URL || '').split(',').map((origin) => origin.trim()).filter(Boolean)
+]));
 const adminReady = ensureDefaultAdmin().catch((error) => {
   console.error('Default admin setup failed:', error);
 });
 
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error(`CORS blocked origin: ${origin}`));
+  },
   credentials: true
 }));
 app.use(express.json({ limit: '2mb' }));
